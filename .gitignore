@@ -1,1 +1,10 @@
-.vscode/
+# ignore vscode settings
+*.vscode*
+
+# ignore keil settings
+*.uvproj*
+*.uvopt*
+*.uvguix.*
+
+# ignore fixed library files
+.Drivers/
