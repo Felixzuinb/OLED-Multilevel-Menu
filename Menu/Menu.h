@@ -1,11 +1,14 @@
-# OLED-Multilevel-Menu
-First try for MCU project (temporarily only stm32). Start with basic use of OLED and multilevel menu.
+#ifndef __MENU_H
+#define __MENU_H
 
-## Main Framework
+#include "stm32f1xx_hal.h"
 
-Main struct:
+typedef enum{
+    MODE_VERTICAL = 0,
+    MODE_HORIZONTAL
+} MenuMode;
 
-```c
+// 菜单项结构体
 typedef struct MenuItem {
     char text[20];              // 菜单显示文本
     void (*action)(void);       // 菜单项执行函数
@@ -24,5 +27,7 @@ typedef struct {
     MenuMode mode;              // 菜单显示模式
 } MenuManager;
 
-```
 
+extern MenuManager menu_manager;
+
+#endif

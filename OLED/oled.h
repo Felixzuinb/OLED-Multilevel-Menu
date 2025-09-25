@@ -12,7 +12,10 @@
 extern I2C_HandleTypeDef hi2c1;
 #else
 // 使用软件 I2C
-#include "gpio.h"
+#define I2C_SCL_GPIO_Port GPIOB
+#define I2C_SCL_Pin GPIO_PIN_8
+#define I2C_SDA_GPIO_Port GPIOB
+#define I2C_SDA_Pin GPIO_PIN_9
 
 #endif
 

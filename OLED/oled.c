@@ -121,6 +121,8 @@ void OLED_W_SDA(uint8_t BitValue)
 	//...
 }
 
+/*********************引脚配置*/
+
 /**
   * 函    数：OLED引脚初始化
   * 参    数：无
@@ -128,26 +130,6 @@ void OLED_W_SDA(uint8_t BitValue)
   * 说    明：当上层函数需要初始化时，此函数会被调用
   *           用户需要将SCL和SDA引脚初始化为开漏模式，并释放引脚
   */
-void OLED_GPIO_Init(void)
-{
-	uint32_t i, j;
-	
-	/*在初始化前，加入适量延时，待OLED供电稳定*/
-	for (i = 0; i < 1000; i ++)
-	{
-		for (j = 0; j < 1000; j ++);
-	}
-	
-	// cubemx已经初始化
-	
-	/*释放SCL和SDA*/
-	OLED_W_SCL(1);
-	OLED_W_SDA(1);
-}
-#endif
-
-/*********************引脚配置*/
-
 
 /*通信协议*********************/
 
@@ -200,6 +182,11 @@ void OLED_I2C_SendByte(uint8_t Byte)
 	OLED_W_SCL(0);
 }
 
+
+
+/*********************通信协议*/
+#endif
+
 /**
   * 函    数：OLED写命令
   * 参    数：Command 要写入的命令值，范围：0x00~0xFF
@@ -208,7 +195,7 @@ void OLED_I2C_SendByte(uint8_t Byte)
 void OLED_WriteCommand(uint8_t Command)
 {
 	#ifdef OLED_HARDWARE_I2C
-	HAL_I2C_Mem_Write(&hi2c1 ,0x78,0x00,I2C_MEMADD_SIZE_8BIT,&cmd,1,0x100);
+	HAL_I2C_Mem_Write(&hi2c1 ,0x78,0x00,I2C_MEMADD_SIZE_8BIT,&Command,1,0x100);
 	#else
 	OLED_I2C_Start();				//I2C起始
 	OLED_I2C_SendByte(0x78);		//发送OLED的I2C从机地址
@@ -227,7 +214,7 @@ void OLED_WriteCommand(uint8_t Command)
 void OLED_WriteData(uint8_t *Data, uint8_t Count)
 {
 	#ifdef OLED_HARDWARE_I2C
-	HAL_I2C_Mem_Write(&hi2c1 ,0x78,0x40,I2C_MEMADD_SIZE_8BIT,&data,Count,0x100);
+	HAL_I2C_Mem_Write(&hi2c1 ,0x78,0x40,I2C_MEMADD_SIZE_8BIT,Data,Count,0x100);
 	#else	// GPIO模拟I2C写数据
 	uint8_t i;
 	
@@ -243,8 +230,6 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
 	#endif
 }
 
-/*********************通信协议*/
-
 
 /*硬件配置*********************/
 
@@ -256,7 +241,7 @@ void OLED_WriteData(uint8_t *Data, uint8_t Count)
   */
 void OLED_Init(void)
 {
-	OLED_GPIO_Init();			//先调用底层的端口初始化
+	// CubeMx初始化
 	
 	/*写入一系列的命令，对OLED进行初始化配置*/
 	OLED_WriteCommand(0xAE);	//设置显示开启/关闭，0xAE关闭，0xAF开启

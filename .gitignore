@@ -24,7 +24,7 @@ MDK-ARM/OLED_Menu/
 *.iex
 
 # ignore fixed library files
-.Drivers/
+Drivers/
 
 # ========== 5. 反向保留 MDK-ARM 核心文件 ==========
 !MDK-ARM/RTE/            # 保留运行时环境配置

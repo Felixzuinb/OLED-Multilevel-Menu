@@ -339,7 +339,7 @@
               <MiscControls>--no-multibyte-chars</MiscControls>
               <Define>USE_HAL_DRIVER,STM32F103xB</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../OLED</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc;../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F1xx/Include;../Drivers/CMSIS/Include;../OLED;..\Menu</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -507,6 +507,21 @@
               <FileName>OLED_Data.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\OLED\OLED_Data.h</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Menu</GroupName>
+          <Files>
+            <File>
+              <FileName>Menu.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Menu\Menu.h</FilePath>
+            </File>
+            <File>
+              <FileName>Menu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Menu\Menu.c</FilePath>
             </File>
           </Files>
         </Group>
