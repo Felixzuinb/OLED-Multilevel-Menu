@@ -1,10 +1,32 @@
 # ignore vscode settings
-*.vscode*
+MDK-ARM/.vscode/
+MDK-ARM/DebugConfig/
 
 # ignore keil settings
-*.uvproj*
-*.uvopt*
 *.uvguix.*
+
+# ignore compiled files
+MDK-ARM/OLED_Menu/
+
+# ignore build output files
+*.o
+*.hex
+*.d
+*.crf
+*.axf
+*.map
+*.htm
+*.lnp
+*.sct
+*.dep
+*.lst   # compile list file
+*.scvd  
+*.iex
 
 # ignore fixed library files
 .Drivers/
+
+# ========== 5. 反向保留 MDK-ARM 核心文件 ==========
+!MDK-ARM/RTE/            # 保留运行时环境配置
+!MDK-ARM/*.uvoptx        # 保留工程选项配置
+!MDK-ARM/*.uvprojx       # 保留工程文件
