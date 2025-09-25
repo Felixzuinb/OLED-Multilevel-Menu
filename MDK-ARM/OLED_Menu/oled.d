@@ -1,5 +1,7 @@
-oled_menu\oled.o: ..\OLED\oled.c
-oled_menu\oled.o: ..\OLED\oled.h
+oled_menu\oled.o: ..\OLED\OLED.c
+oled_menu\oled.o: ..\OLED\OLED.h
+oled_menu\oled.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
+oled_menu\oled.o: ..\OLED\OLED_Data.h
 oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal.h
 oled_menu\oled.o: ../Core/Inc/stm32f1xx_hal_conf.h
 oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_rcc.h
@@ -7,7 +9,6 @@ oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_def.h
 oled_menu\oled.o: ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f1xx.h
 oled_menu\oled.o: ../Drivers/CMSIS/Device/ST/STM32F1xx/Include/stm32f103xb.h
 oled_menu\oled.o: ../Drivers/CMSIS/Include/core_cm3.h
-oled_menu\oled.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 oled_menu\oled.o: ../Drivers/CMSIS/Include/cmsis_version.h
 oled_menu\oled.o: ../Drivers/CMSIS/Include/cmsis_compiler.h
 oled_menu\oled.o: ../Drivers/CMSIS/Include/cmsis_armcc.h
@@ -24,6 +25,10 @@ oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma_ex.h
 oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_cortex.h
 oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash.h
 oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
-oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_i2c.h
 oled_menu\oled.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
-oled_menu\oled.o: ..\OLED\oledfont.h
+oled_menu\oled.o: ../Core/Inc/gpio.h
+oled_menu\oled.o: ../Core/Inc/main.h
+oled_menu\oled.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
+oled_menu\oled.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
+oled_menu\oled.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
+oled_menu\oled.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdarg.h

@@ -24,10 +24,7 @@ oled_menu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_dma_ex.h
 oled_menu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_cortex.h
 oled_menu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash.h
 oled_menu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_flash_ex.h
-oled_menu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_i2c.h
 oled_menu\main.o: ../Drivers/STM32F1xx_HAL_Driver/Inc/stm32f1xx_hal_pwr.h
-oled_menu\main.o: ../Core/Inc/dma.h
-oled_menu\main.o: ../Core/Inc/i2c.h
 oled_menu\main.o: ../Core/Inc/gpio.h
-oled_menu\main.o: ..\OLED\oled.h
-oled_menu\main.o: ..\OLED\oledfont.h
+oled_menu\main.o: ../OLED/OLED.h
+oled_menu\main.o: ../OLED/OLED_Data.h
