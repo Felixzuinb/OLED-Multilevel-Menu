@@ -149,26 +149,36 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    for (uint8_t i = 0; i < 6; i++)
-    {
-      Menu_SelectNext();
-      HAL_Delay(100);
-    }
+    // for (uint8_t i = 0; i < 6; i++)
+    // {
+    //   Menu_SelectNext();
+    //   HAL_Delay(100);
+    // }
+    Menu_SelectPrev();
+    HAL_Delay(1000);
+    Menu_SelectNext();
+    HAL_Delay(100);
+    Menu_SelectNext();
+    HAL_Delay(100);
+    Menu_SelectNext();
+    HAL_Delay(100);
+    Menu_SelectNext();
+    HAL_Delay(100);
     Menu_SelectPrev();
     HAL_Delay(100);
     Menu_SelectPrev();
     HAL_Delay(100);
-    Menu_SelectNext();
-    HAL_Delay(100);
-    Menu_SelectNext();
-    HAL_Delay(100);
-    Menu_SelectNext();
-    HAL_Delay(100);
-    for (uint8_t i = 0; i < 6; i++)
-    {
-      Menu_SelectPrev();
-      HAL_Delay(100);
-    }
+    Menu_EnterChild();
+    Menu_Display();
+    HAL_Delay(1000);
+    Menu_GoBack();
+    Menu_Display();
+    HAL_Delay(1000);
+    // for (uint8_t i = 0; i < 6; i++)
+    // {
+    //   Menu_SelectPrev();
+    //   HAL_Delay(100);
+    // }
   }
   /* USER CODE END 3 */
 }

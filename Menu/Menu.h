@@ -14,6 +14,11 @@ typedef struct Camera{
     uint8_t displayed_index;    // 镜头中选中项的索引
 } Camera;
 
+
+#define TOWARD_CHILD 0
+#define TOWARD_PARENT 1
+#define TOWARD_NONE 2
+
 // 菜单项结构体
 typedef struct MenuItem {
     char text[20];              // 菜单显示文本
@@ -31,6 +36,8 @@ typedef struct {
 
     Camera camera_index[4];     // 镜头索引数组(即支持四层菜单嵌套)
     uint8_t depth;              // 当前菜单深度
+
+    uint8_t toward;         // 菜单进出方向
 
     MenuMode mode;              // 菜单显示模式
 } MenuManager;

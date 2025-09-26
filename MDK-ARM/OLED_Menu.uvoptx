@@ -152,69 +152,21 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>215</LineNumber>
+          <LineNumber>176</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134222234</Address>
+          <Address>134224348</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\Menu\Menu.c</Filename>
+          <Filename>../Core/Src/main.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\OLED_Menu\../Menu/Menu.c\215</Expression>
+          <Expression>\\OLED_Menu\../Core/Src/main.c\176</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
-          <Type>0</Type>
-          <LineNumber>217</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134222252</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\Menu\Menu.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\OLED_Menu\../Menu/Menu.c\217</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>224</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134222272</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\Menu\Menu.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\OLED_Menu\../Menu/Menu.c\224</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>226</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134222288</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\Menu\Menu.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\OLED_Menu\../Menu/Menu.c\226</Expression>
-        </Bp>
-        <Bp>
-          <Number>4</Number>
           <Type>0</Type>
           <LineNumber>87</LineNumber>
           <EnabledFlag>1</EnabledFlag>
@@ -230,7 +182,7 @@
           <Expression></Expression>
         </Bp>
         <Bp>
-          <Number>5</Number>
+          <Number>2</Number>
           <Type>0</Type>
           <LineNumber>89</LineNumber>
           <EnabledFlag>1</EnabledFlag>
@@ -265,12 +217,17 @@
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>page</ItemText>
+          <ItemText>step,0x0A</ItemText>
         </Ww>
         <Ww>
           <count>4</count>
           <WinNumber>1</WinNumber>
-          <ItemText>row_bias</ItemText>
+          <ItemText>bias,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>5</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>reverse_pos,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <WatchWindow2>

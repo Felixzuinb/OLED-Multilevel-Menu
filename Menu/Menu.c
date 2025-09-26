@@ -8,6 +8,7 @@
 MenuManager menu_manager;
 
 int8_t animition_linear[] = {8, 4, 2, 2};
+int8_t touch_end_func[] = {4, 2, -2, -4};
 
 // 初始化菜单管理器
 void Menu_Init(void)
@@ -15,10 +16,15 @@ void Menu_Init(void)
     menu_manager.current_menu = NULL;
     menu_manager.current_item = NULL;
     menu_manager.depth = 0;
-    menu_manager.camera_index[menu_manager.depth].start_index = 0;
-    menu_manager.camera_index[menu_manager.depth].displayed_index = 0;
-    menu_manager.camera_index[menu_manager.depth].selected_index = 0;
+    for (uint8_t i = 0; i < 4; i++)
+    {
+        menu_manager.camera_index[i].start_index = 0;
+    menu_manager.camera_index[i].displayed_index = 0;
+    menu_manager.camera_index[i].selected_index = 0;
+    }
+    
     menu_manager.mode = MODE_VERTICAL;
+    menu_manager.toward = TOWARD_NONE;
 }
 
 // 创建新菜单项
@@ -81,6 +87,7 @@ void Menu_AddChild(MenuItem *parent, MenuItem *child)
 // 进入子菜单
 void Menu_EnterChild(void)
 {
+    // 成功进入子菜单
     if (menu_manager.current_item != NULL &&
         menu_manager.current_item->child != NULL)
     {
@@ -88,7 +95,28 @@ void Menu_EnterChild(void)
         menu_manager.current_item = menu_manager.current_menu->child;
 
         menu_manager.depth++; // 增加菜单深度
+        
+        menu_manager.toward = TOWARD_CHILD;
+        return;
     }
+
+    // 进入子菜单失败(播放错误动画)
+    uint8_t reverse_pos = menu_manager.camera_index[menu_manager.depth].displayed_index * 16;
+    OLED_ReverseArea(0, reverse_pos, 128, 16); // 取消之前的反向效果
+    OLED_ReverseArea(0, reverse_pos - 4, 128, 16);
+    OLED_UpdateArea(0, reverse_pos - 4, 128, 16 + 4 + 2);
+    OLED_ReverseArea(0, reverse_pos - 4, 128, 16);
+    OLED_ReverseArea(0, reverse_pos - 2, 128, 16);
+    OLED_UpdateArea(0, reverse_pos - 4, 128, 16 + 4 + 2);
+    OLED_ReverseArea(0, reverse_pos - 2, 128, 16);
+    OLED_ReverseArea(0, reverse_pos, 128, 16);
+    OLED_UpdateArea(0, reverse_pos - 4, 128, 16 + 4 + 2);
+    OLED_ReverseArea(0, reverse_pos, 128, 16);
+    OLED_ReverseArea(0, reverse_pos + 2, 128, 16);
+    OLED_UpdateArea(0, reverse_pos - 4, 128, 16 + 4 + 2);
+    OLED_ReverseArea(0, reverse_pos + 2, 128, 16);
+    OLED_ReverseArea(0, reverse_pos, 128, 16);
+    OLED_UpdateArea(0, reverse_pos - 4, 128, 16 + 4 + 2);
 }
 
 // 返回父菜单
@@ -102,6 +130,8 @@ void Menu_GoBack(void)
         menu_manager.current_menu = menu_manager.current_menu->parent; // 返回父菜单
 
         menu_manager.depth--; // 减少菜单深度
+
+        menu_manager.toward = TOWARD_PARENT;
     }
 }
 
@@ -138,27 +168,26 @@ void Menu_RunScrollAnimition(uint8_t direction, uint8_t is_end, uint8_t is_show_
             }
         }
 
-        int8_t touch_end_func[] = {4, 2, -2, -4};
         for (uint8_t i = 0; i < 4; i++)
         {
-            step = touch_end_func[i]; // 获取当前步进行数
+            step = animition_func[i]; // 获取当前步进行数
 
             if (direction == 0)
             {
-                OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 取消之前的反相效果
-                OLED_Scroll(-step);                                                        // 已有内容向上滚动step行
-                start_pos -= step;                                                         // 更新新内容起始位置
+                OLED_ReverseArea(0, 3 * 16, 128, 16);                 // 取消之前的反相效果
+                OLED_Scroll(-step);                                   // 已有内容向上滚动step行
+                start_pos -= step;                                    // 更新新内容起始位置
                 OLED_ShowString(0, start_pos, item->text, OLED_8X16); // 显示滚出的内容
-                OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 重新反相选中效果
+                OLED_ReverseArea(0, 3 * 16, 128, 16);                 // 重新反相选中效果
                 OLED_Update();
             }
             else
             {
-                OLED_ReverseArea(0, 0, 128, 16);                                      // 取消之前的反相效果
-                OLED_Scroll(step);                                                        // 已有内容向下滚动step行
-                start_pos += step;                                                         // 更新新内容起始位置
+                OLED_ReverseArea(0, 0, 128, 16);                      // 取消之前的反相效果
+                OLED_Scroll(step);                                    // 已有内容向下滚动step行
+                start_pos += step;                                    // 更新新内容起始位置
                 OLED_ShowString(0, start_pos, item->text, OLED_8X16); // 显示滚出的内容
-                OLED_ReverseArea(0, 0, 128, 16);                                      // 重新反相选中效果
+                OLED_ReverseArea(0, 0, 128, 16);                      // 重新反相选中效果
                 OLED_Update();
             }
 
@@ -243,7 +272,7 @@ void Menu_SelectNext(void)
         return;
     }
     // 触底操作
-    Menu_RunScrollAnimition(0, 1, 1, animition_linear, 4, 20);
+    Menu_RunScrollAnimition(0, 1, 1, touch_end_func, 4, 20);
 }
 
 // 选择上一个菜单项
@@ -273,7 +302,7 @@ void Menu_SelectPrev(void)
         return;
     }
     // 触顶操作
-    Menu_RunScrollAnimition(1, 1, 1, animition_linear, 4, 20);
+    Menu_RunScrollAnimition(1, 1, 1, touch_end_func, 4, 20);
 }
 
 // 执行当前菜单项的动作
@@ -320,8 +349,59 @@ void Menu_Display(void)
         OLED_ShowString(0, i * 16, item->text, OLED_8X16);
         item = item->next;
     }
-    // 选中项反相
-    OLED_ReverseArea(0, menu_manager.camera_index[menu_manager.depth].displayed_index * 16, 128, 16);
 
-    OLED_Update();
+    // 更新选中项反相效果
+    if (menu_manager.toward == TOWARD_CHILD)
+    {
+        if (menu_manager.camera_index[menu_manager.depth - 1].displayed_index != 0) // 父菜单选中项不是第一行
+        {
+            uint8_t reverse_pos = menu_manager.camera_index[menu_manager.depth - 1].displayed_index * 16;   // 初始父菜单反相位置
+            OLED_ReverseArea(0, reverse_pos, 128, 16); // 保持之前的反相效果
+            OLED_Update();
+
+            // 移动到当前选中项（进入子菜单默认第一项）
+            int8_t step;
+            int8_t bias = -reverse_pos; // 父菜单选中项到当前选中项的偏移
+            for (uint8_t i = 0; i < 4; i++)
+            {
+                step = animition_linear[i] * bias / 16;    // 获取当前步进行数
+                OLED_ReverseArea(0, reverse_pos, 128, 16); // 取消之前的反向效果
+                reverse_pos += step;                       // 更新反相位置
+                OLED_ReverseArea(0, reverse_pos, 128, 16); // 重新反相选中效果
+                OLED_Update();
+            }
+        }
+
+        menu_manager.toward = TOWARD_NONE;  // 重置方向
+    }
+    else if(menu_manager.toward == TOWARD_PARENT)
+    {
+        if ((menu_manager.camera_index[menu_manager.depth + 1].displayed_index) !=
+            (menu_manager.camera_index[menu_manager.depth].displayed_index))    // 父菜单选中项不是当前选中项
+        {
+            uint8_t reverse_pos = menu_manager.camera_index[menu_manager.depth + 1].displayed_index * 16;   // 初始子菜单反相位置
+            OLED_ReverseArea(0, reverse_pos, 128, 16); // 保持之前的反相效果
+            OLED_Update();
+
+            // 移动到当前选中项
+            int8_t step;
+            int8_t bias = menu_manager.camera_index[menu_manager.depth].displayed_index * 16 - reverse_pos; // 子菜单选中项到当前选中项的偏移
+            for (uint8_t i = 0; i < 4; i++)
+            {
+                step = animition_linear[i] * bias / 16;    // 获取当前步进行数
+                OLED_ReverseArea(0, reverse_pos, 128, 16); // 取消之前的反向效果
+                reverse_pos += step;                       // 更新反相位置
+                OLED_ReverseArea(0, reverse_pos, 128, 16); // 重新反相选中效果
+                OLED_Update();
+            }
+        }
+
+        menu_manager.toward = TOWARD_NONE;  // 重置方向
+    }
+    else
+    {
+        uint8_t reverse_pos = menu_manager.camera_index[menu_manager.depth].displayed_index * 16;
+        OLED_ReverseArea(0, reverse_pos, 128, 16);
+        OLED_Update();
+    }
 }
