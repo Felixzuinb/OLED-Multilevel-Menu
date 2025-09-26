@@ -1,4 +1,3 @@
-
 /***************************************************************************************
   * 本程序由江协科技创建并免费开源共享
   * 你可以任意查看、使用和修改，并应用到自己的项目之中
@@ -1033,7 +1032,7 @@ void OLED_DrawLine(int16_t X0, int16_t Y0, int16_t X1, int16_t Y1)
 		if (y1 - y0 > x1 - x0)	//画线斜率大于1
 		{
 			/*将X坐标与Y坐标互换*/
-			/*互换后影响画线，但是画线方向由第一象限0~90度范围变为第一象限0~45度范围*/
+			/*互换后不影响画线，但是画线方向由第一象限0~90度范围变为第一象限0~45度范围*/
 			temp = x0; x0 = y0; y0 = temp;
 			temp = x1; x1 = y1; y1 = temp;
 			
@@ -1325,7 +1324,7 @@ void OLED_DrawEllipse(int16_t X, int16_t Y, uint8_t A, uint8_t B, uint8_t IsFill
 		{
 			/*遍历中间部分*/
 			for (j = -y; j < y; j ++)
-			{
+									{
 				/*在指定区域画点，填充部分椭圆*/
 				OLED_DrawPoint(X + x, Y + j);
 				OLED_DrawPoint(X - x, Y + j);
@@ -1459,6 +1458,95 @@ void OLED_DrawArc(int16_t X, int16_t Y, uint8_t Radius, int16_t StartAngle, int1
 		}
 	}
 }
+
+void OLED_Scroll(int8_t ScrollLines)
+{
+	if (ScrollLines > 0)
+	{
+		OLED_ScrollDown((uint8_t)ScrollLines);
+	}
+	else if (ScrollLines < 0)
+	{
+		OLED_ScrollUp((uint8_t)(-ScrollLines));
+	}
+}
+
+void OLED_ScrollUp(uint8_t ScrollLines)
+{
+    if (ScrollLines == 0 || ScrollLines > 63) { return; } // 无效滚动
+
+    for (int j = 0; j < 128; j++) {
+        unsigned long long col = 0ULL;
+
+        // 将列数据合并为 64 位值，page0 在低位
+        for (int p = 0; p < 8; p++) {
+            col |= ((unsigned long long)OLED_DisplayBuf[p][j]) << (p * 8);
+        }
+
+        // 向上滚动：低位填 0
+        col >>= ScrollLines;
+
+        // 拆分回页面缓冲
+        for (int p = 0; p < 8; p++) {
+            OLED_DisplayBuf[p][j] = (uint8_t)((col >> (p * 8)) & 0xFFULL);
+        }
+    }
+}
+
+void OLED_ScrollDown(uint8_t ScrollLines)
+{
+    int j, p;
+
+    if (ScrollLines == 0 || ScrollLines > 63) { return; } // 无效滚动
+
+    // 按列处理：把每列 8 个字节组成一个 64 位值，整体左移 ScrollLines 行（向下滚动）
+    for (j = 0; j < 128; j++) {
+        unsigned long long col = 0ULL;
+        // 组合列为 64-bit，page0 在低位
+        for (p = 0; p < 8; p++) {
+            col |= ((unsigned long long)OLED_DisplayBuf[p][j]) << (p * 8);
+        }
+
+        // 向下滚动：高位填 0
+        col <<= ScrollLines;
+
+        // 拆回到页面缓冲
+        for (p = 0; p < 8; p++) {
+            OLED_DisplayBuf[p][j] = (uint8_t)((col >> (p * 8)) & 0xFFULL);
+        }
+    }
+}
+// deprecated
+// void OLED_ScrollUp(uint8_t ScrollLines)
+// {
+// 	int16_t i, j;
+	
+// 	if (ScrollLines == 0 || ScrollLines > 63) {return;}	//滚动行数为0或大于屏幕高度，直接返回
+	
+// 	/*遍历每一页*/
+// 	for (i = 0; i < 8; i ++)
+// 	{
+// 		/*遍历每一列*/
+// 		for (j = 0; j < 128; j ++)
+// 		{
+// 			if (i * 8 + ScrollLines < 64)	//滚动后还在屏幕范围内
+// 			{
+// 				/*将显存数组指定位置的数据上移指定行数*/
+// 				OLED_DisplayBuf[i][j] = OLED_DisplayBuf[(i * 8 + ScrollLines) / 8][j] >> ((i * 8 + ScrollLines) % 8);
+				
+// 				if ((i * 8 + ScrollLines) % 8 != 0 && (i * 8 + ScrollLines) / 8 + 1 < 8)	//不是整页移动，且下一页在屏幕范围内
+// 				{
+// 					OLED_DisplayBuf[i][j] |= OLED_DisplayBuf[(i * 8 + ScrollLines) / 8 + 1][j] << (8 - (i * 8 + ScrollLines) % 8);
+// 				}
+// 			}
+// 			else							//滚动后超出屏幕范围
+// 			{
+// 				OLED_DisplayBuf[i][j] = 0x00;	//清空数据
+// 			}
+// 		}
+// 	}
+// }
+
 
 /*********************功能函数*/
 
