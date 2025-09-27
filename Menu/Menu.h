@@ -19,6 +19,9 @@ typedef struct Camera{
 #define TOWARD_PARENT 1
 #define TOWARD_NONE 2
 
+#define UP 0
+#define DOWN 1
+
 // 菜单项结构体
 typedef struct MenuItem {
     char text[20];              // 菜单显示文本
@@ -45,6 +48,7 @@ typedef struct {
 
 extern MenuManager menu_manager;
 
+
 void Menu_Init(void);
 MenuItem* Menu_CreateItem(const char* text, void (*action)(void));
 void Menu_InitItem(const char* text, MenuItem* item, void (*action)(void));
@@ -55,5 +59,10 @@ void Menu_SelectNext(void);
 void Menu_SelectPrev(void);
 void Menu_ExecuteAction(void);
 void Menu_Display(void);
+
+static void Menu_RunScrollAnimition(uint8_t direction, uint8_t is_show_new, int8_t *animition_func, uint8_t step_num, uint8_t time);
+static void Menu_RunEndBounceAnimition(uint8_t direction, uint8_t is_tracking_the_other_side, int8_t *animition_func, uint8_t step_num, uint8_t time);
+static void Menu_RunErrorAnimition(int8_t *animition_func, uint8_t step_num, uint8_t time);
+static void Menu_RunUpdateReverseAnimition(int8_t *animition_func, uint8_t step_num, uint8_t initial_index, uint8_t target_index, uint8_t time);
 
 #endif

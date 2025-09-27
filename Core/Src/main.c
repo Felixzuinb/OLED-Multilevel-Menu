@@ -160,6 +160,18 @@ int main(void)
     HAL_Delay(100);
     Menu_SelectNext();
     HAL_Delay(100);
+
+    Menu_EnterChild();
+    HAL_Delay(100);
+    Menu_SelectPrev();
+    HAL_Delay(500);
+    Menu_SelectNext();
+    HAL_Delay(100);
+    Menu_SelectNext();
+    HAL_Delay(500);
+    Menu_GoBack();
+    HAL_Delay(1000);
+
     Menu_SelectNext();
     HAL_Delay(100);
     Menu_SelectNext();
@@ -169,10 +181,10 @@ int main(void)
     Menu_SelectPrev();
     HAL_Delay(100);
     Menu_EnterChild();
-    Menu_Display();
     HAL_Delay(1000);
+    Menu_SelectPrev();
+    HAL_Delay(100);
     Menu_GoBack();
-    Menu_Display();
     HAL_Delay(1000);
     // for (uint8_t i = 0; i < 6; i++)
     // {
