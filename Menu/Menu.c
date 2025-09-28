@@ -6,6 +6,7 @@
 /***** 基本功能函数 *****/
 
 MenuManager menu_manager;
+Language currentLanguage; // 当前语言
 
 // animition pointer(ap)
 static int8_t ap_linear[] = {8, 4, 2, 2};
@@ -17,11 +18,25 @@ static int8_t ap_error[] = {3, 2, 1, -2, -3, -2, -1, 2};
 #define AL_TOUCH_END (sizeof(ap_touch_end_func) / sizeof(ap_touch_end_func[0]))
 #define AL_ERROR (sizeof(ap_error) / sizeof(ap_error[0]))
 
+/***** 静态函数声明 *****/
+
+static void Menu_RunScrollAnimition(uint8_t direction, uint8_t is_show_new, int8_t *animition_func, uint8_t step_num, uint8_t time);
+static void Menu_RunEndBounceAnimition(uint8_t direction, uint8_t is_tracking_the_other_side, int8_t *animition_func, uint8_t step_num, uint8_t time);
+static void Menu_RunErrorAnimition(int8_t *animition_func, uint8_t step_num, uint8_t time);
+static void Menu_RunUpdateReverseAnimition(int8_t *animition_func, uint8_t step_num, uint8_t initial_index, uint8_t target_index, uint8_t time);
+static const char *getMenuItemText(const MenuItem *item);
+static void refreshAllMenuItemTexts(MenuItem *item);
+static void refreshMenuItemText(MenuItem *item);
+static void Menu_DisplayItem(MenuMode mode);
+
+/***** 菜单基本功能函数 *****/
+
 // 初始化菜单管理器
 void Menu_Init(void)
 {
     menu_manager.current_menu = NULL;
     menu_manager.current_item = NULL;
+    menu_manager.root = NULL;
     menu_manager.depth = 0;
     for (uint8_t i = 0; i < 4; i++)
     {
@@ -32,31 +47,15 @@ void Menu_Init(void)
 
     menu_manager.mode = MODE_VERTICAL;
     menu_manager.toward = TOWARD_NONE;
+    menu_manager.text = getMenuItemText;                // 默认获取菜单文本函数
+    menu_manager.refreshText = refreshAllMenuItemTexts; // 默认刷新菜单文本函数
 }
 
-// 创建新菜单项
-MenuItem *Menu_CreateItem(const char *text, void (*action)(void))
-{
-    MenuItem *item = (MenuItem *)malloc(sizeof(MenuItem));
-    if (item != NULL)
-    {
-        strncpy(item->text, text, sizeof(item->text) - 1);
-        item->text[sizeof(item->text) - 1] = '\0';
-        item->action = action;
-        item->parent = NULL;
-        item->child = NULL;
-        item->next = NULL;
-        item->prev = NULL;
-    }
-    return item;
-}
-
-void Menu_InitItem(const char *text, MenuItem *item, void (*action)(void))
+void Menu_InitItem(TextID textID, MenuItem *item, void (*action)(void))
 {
     if (item != NULL)
     {
-        strncpy(item->text, text, sizeof(item->text) - 1);
-        item->text[sizeof(item->text) - 1] = '\0';
+        item->text_id = textID;
         item->action = action;
         item->parent = NULL;
         item->child = NULL;
@@ -146,13 +145,13 @@ void Menu_SelectNext(void)
         {
             menu_manager.camera_index[menu_manager.depth].start_index++; // 显示起始索引增加
 
-            Menu_RunScrollAnimition(0, 1, ap_linear, AL_LINEAR, 20);
+            Menu_RunScrollAnimition(UP, 1, ap_linear, AL_LINEAR, 20);
         }
         else // 未超出显示范围，屏幕中显示的选中索引增加
         {
             menu_manager.camera_index[menu_manager.depth].displayed_index++; // 屏幕中显示的选中索引增加
 
-            Menu_RunScrollAnimition(0, 0, ap_linear, AL_LINEAR, 20);
+            Menu_RunScrollAnimition(UP, 0, ap_linear, AL_LINEAR, 20);
         }
 
         return;
@@ -169,11 +168,11 @@ void Menu_SelectNext(void)
     // 检查上触顶时，菜单项数是否少于4个
     if (item_count < 4)
     {
-        Menu_RunEndBounceAnimition(0, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
+        Menu_RunEndBounceAnimition(UP, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
     }
     else
     {
-        Menu_RunEndBounceAnimition(0, 1, ap_touch_end_func, AL_TOUCH_END, 20);
+        Menu_RunEndBounceAnimition(UP, 1, ap_touch_end_func, AL_TOUCH_END, 20);
     }
 }
 
@@ -194,13 +193,13 @@ void Menu_SelectPrev(void)
         {
             menu_manager.camera_index[menu_manager.depth].start_index--; // 显示起始索引减少
 
-            Menu_RunScrollAnimition(1, 1, ap_linear, AL_LINEAR, 20);
+            Menu_RunScrollAnimition(DOWN, 1, ap_linear, AL_LINEAR, 20);
         }
         else
         {
             menu_manager.camera_index[menu_manager.depth].displayed_index--; // 屏幕中显示的选中索引增加
 
-            Menu_RunScrollAnimition(1, 0, ap_linear, AL_LINEAR, 20);
+            Menu_RunScrollAnimition(DOWN, 0, ap_linear, AL_LINEAR, 20);
         }
 
         return;
@@ -216,11 +215,11 @@ void Menu_SelectPrev(void)
     // 检查下触顶时，菜单项数是否少于4个
     if (item_count < 4)
     {
-        Menu_RunEndBounceAnimition(1, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
+        Menu_RunEndBounceAnimition(DOWN, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
     }
     else
     {
-        Menu_RunEndBounceAnimition(1, 1, ap_touch_end_func, AL_TOUCH_END, 20);
+        Menu_RunEndBounceAnimition(DOWN, 1, ap_touch_end_func, AL_TOUCH_END, 20);
     }
 }
 
@@ -240,7 +239,41 @@ void Menu_ExecuteAction(void)
     }
 }
 
-/***** 显示函数 *****/
+/***** 菜单功能函数 *****/
+
+// 获取菜单项的当前语言文本
+static const char *getMenuItemText(const MenuItem *item)
+{
+    return item ? item->text : "";
+}
+
+// 刷新菜单项文本（当语言切换时调用）
+static void refreshMenuItemText(MenuItem *item)
+{
+    if (item == NULL || currentLanguage >= LANG_COUNT)
+        return; // 访问意外
+
+    if (item->text_id >= TEXT_COUNT)
+    {
+        item->text = textMap[currentLanguage][TID_NULL]; // 无效时设为空字符串
+        return;
+    }
+    item->text = textMap[currentLanguage][item->text_id];
+}
+
+// 刷新所有菜单项文本（当语言切换时调用）
+static void refreshAllMenuItemTexts(MenuItem *root)
+{
+    if (root == NULL)
+        return;
+    refreshMenuItemText(root); // 刷新当前项
+
+    if (root->next != NULL)
+        refreshAllMenuItemTexts(root->next); // 递归刷新兄弟项
+
+    if (root->child != NULL)
+        refreshAllMenuItemTexts(root->child); // 递归刷新子菜单
+}
 
 // 显示当前菜单
 void Menu_Display(void)
@@ -252,62 +285,49 @@ void Menu_Display(void)
         return;
 
     // 显示菜单项
-    MenuItem *item = menu_manager.current_menu->child;
-    uint8_t display_start = 0;
-
-    // 跳转到显示起始位置
-    while (item != NULL && display_start < menu_manager.camera_index[menu_manager.depth].start_index)
-    {
-        item = item->next;
-        display_start++;
-    }
-
-    // 显示4个菜单项
-    for (uint8_t i = 0; i < 4 && item != NULL; i++)
-    {
-        OLED_ShowString(0, i * 16, item->text, OLED_8X16);
-        item = item->next;
-    }
+    Menu_DisplayItem(menu_manager.mode);
 
     // 更新选中项反相效果
-    if (menu_manager.toward == TOWARD_CHILD)
+    switch (menu_manager.toward)
+    {
+    case TOWARD_CHILD:
     {
         uint8_t initial_index = menu_manager.camera_index[menu_manager.depth - 1].displayed_index; // 初始父菜单反相位置
-        if (initial_index != 0)                                                                    // 父菜单选中项不是第一行
-        {
-            OLED_ReverseArea(0, initial_index * 16, 128, 16); // 保持之前的反相效果
-            OLED_Update();
-
-            // 移动到当前选中项（进入子菜单默认第一项）
-            Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, 0, 20);
-        }
+        
+        // 移动到当前选中项（进入子菜单默认第一项）
+        Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, 0, 20);
 
         menu_manager.toward = TOWARD_NONE; // 重置方向
+        break;
     }
-    else if (menu_manager.toward == TOWARD_PARENT)
+
+    case TOWARD_PARENT:
     {
         uint8_t initial_index = menu_manager.camera_index[menu_manager.depth + 1].displayed_index; // 初始子菜单反相位置
         uint8_t target_index = menu_manager.camera_index[menu_manager.depth].displayed_index;      // 目标父菜单反相位置
 
-        if (initial_index != target_index) // 父菜单选中项不是当前选中项
-        {
-            OLED_ReverseArea(0, initial_index * 16, 128, 16); // 保持之前的反相效果
-            OLED_Update();
-
-            Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, target_index, 20);
-        }
+        
+        Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, target_index, 20);
+        
 
         menu_manager.toward = TOWARD_NONE; // 重置方向
         // 重置子菜单镜头位置
         menu_manager.camera_index[menu_manager.depth + 1].start_index = 0;
         menu_manager.camera_index[menu_manager.depth + 1].displayed_index = 0;
         menu_manager.camera_index[menu_manager.depth + 1].selected_index = 0;
+        break;
     }
-    else
+
+    case TOWARD_NONE:
     {
         uint8_t reverse_pos = menu_manager.camera_index[menu_manager.depth].displayed_index * 16;
         OLED_ReverseArea(0, reverse_pos, 128, 16);
         OLED_Update();
+        break;
+    }
+
+    default:
+        break;
     }
 }
 
@@ -336,11 +356,13 @@ static void Menu_RunScrollAnimition(uint8_t direction, uint8_t is_show_new, int8
 
     if (is_show_new) // 显示新内容
     {
+
         for (uint8_t i = 0; i < step_num; i++)
         {
             step = animition_func[i]; // 获取当前步进行数
             if (direction == 0)
             {
+
                 start_pos -= step;
                 OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 取消选中反相效果
                 OLED_Scroll(-step);                                                        // 已有内容向上滚动step行
@@ -534,6 +556,12 @@ static void Menu_RunUpdateReverseAnimition(int8_t *animition_func, uint8_t step_
 
     int8_t bias = (target_index - initial_index) * 16; // 初始选中项到目标选中项的偏移
 
+    if (menu_manager.toward != TOWARD_NONE)
+    {
+        OLED_ReverseArea(0, initial_index * 16, 128, 16); // 保持之前的反相效果
+        OLED_Update();
+    }
+
     for (uint8_t i = 0; i < step_num; i++)
     {
         step = animition_func[i] * bias / 16;      // 获取当前步进行数
@@ -543,5 +571,38 @@ static void Menu_RunUpdateReverseAnimition(int8_t *animition_func, uint8_t step_
         OLED_Update();
 
         HAL_Delay(time);
+    }
+}
+
+static void Menu_DisplayItem(MenuMode mode)
+{
+    switch (mode)
+    {
+    case MODE_VERTICAL:
+    {
+        // 显示菜单项
+        MenuItem *item = menu_manager.current_menu->child;
+        uint8_t display_start = 0;
+
+        // 跳转到显示起始位置
+        while (item != NULL && display_start < menu_manager.camera_index[menu_manager.depth].start_index)
+        {
+            item = item->next;
+            display_start++;
+        }
+
+        // 显示4个菜单项
+        for (uint8_t i = 0; i < 4 && item != NULL; i++)
+        {
+            OLED_ShowString(0, i * 16, item->text, OLED_8X16);
+            item = item->next;
+        }
+        break;
+    }
+
+    case MODE_HORIZONTAL:
+        break;
+    default:
+        break;
     }
 }
