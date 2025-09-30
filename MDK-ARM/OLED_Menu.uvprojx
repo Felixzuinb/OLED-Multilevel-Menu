@@ -686,6 +686,16 @@
               <FileType>5</FileType>
               <FilePath>..\Menu\MenuItems.h</FilePath>
             </File>
+            <File>
+              <FileName>MenuAnim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Menu\MenuAnim.c</FilePath>
+            </File>
+            <File>
+              <FileName>MenuAnim.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Menu\MenuAnim.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -1,7 +1,5 @@
 #include "Menu.h"
 #include "OLED.h"
-#include <stdlib.h>
-#include <string.h>
 
 /***** 基本功能函数 *****/
 
@@ -20,16 +18,21 @@ static int8_t ap_error[] = {3, 2, 1, -2, -3, -2, -1, 2};
 
 /***** 静态函数声明 *****/
 
-static void Menu_RunScrollAnimition(uint8_t direction, uint8_t is_show_new, int8_t *animition_func, uint8_t step_num, uint8_t time);
-static void Menu_RunEndBounceAnimition(uint8_t direction, uint8_t is_tracking_the_other_side, int8_t *animition_func, uint8_t step_num, uint8_t time);
-static void Menu_RunErrorAnimition(int8_t *animition_func, uint8_t step_num, uint8_t time);
-static void Menu_RunUpdateReverseAnimition(int8_t *animition_func, uint8_t step_num, uint8_t initial_index, uint8_t target_index, uint8_t time);
+static uint8_t Menu_CheckAnimValid(AnimType type, int8_t *anim_func, uint8_t step_num);
+static void Menu_StateSetBasic(AnimType type, int8_t *anim_func, uint8_t total_frame, uint8_t time_per_frame);
+
+static void Menu_StartErrorAnim(int8_t *anim_func, uint8_t step_num, uint8_t time_pre_frame);
+static void Menu_StartScrollAnim(uint8_t direction, int8_t *anim_func, uint8_t step_num, uint8_t time_pre_frame);
+static void Menu_StartUpdateSelectedAnim(int8_t *anim_func, uint8_t step_num, uint8_t initial_index, uint8_t target_index, uint8_t time_pre_frame);
+static void Menu_StartBounceAnim(uint8_t direction, uint8_t are_items_full, int8_t *anim_func, uint8_t step_num, uint8_t time_pre_frame);
+
 static const char *getMenuItemText(const MenuItem *item);
 static void refreshAllMenuItemTexts(MenuItem *item);
 static void refreshMenuItemText(MenuItem *item);
 static void Menu_DisplayItem(MenuMode mode);
+static void Menu_EnterChild(void);
 
-/***** 菜单基本功能函数 *****/
+/************* 菜单基本功能函数 *************/
 
 // 初始化菜单管理器
 void Menu_Init(void)
@@ -88,10 +91,10 @@ void Menu_AddChild(MenuItem *parent, MenuItem *child)
     }
 }
 
-/***** 菜单导航函数 *****/
+/************* 菜单导航函数 *************/
 
 // 进入子菜单
-void Menu_EnterChild(void)
+static void Menu_EnterChild(void)
 {
     // 成功进入子菜单
     if (menu_manager.current_item != NULL &&
@@ -108,7 +111,8 @@ void Menu_EnterChild(void)
     }
 
     // 进入子菜单失败(播放错误动画)
-    Menu_RunErrorAnimition(ap_error, AL_ERROR, 20);
+    // Menu_RunErrorAnimition(ap_error, AL_ERROR, 20);
+    Menu_StartErrorAnim(ap_error, AL_ERROR, 20);
 }
 
 // 返回父菜单
@@ -145,13 +149,17 @@ void Menu_SelectNext(void)
         {
             menu_manager.camera_index[menu_manager.depth].start_index++; // 显示起始索引增加
 
-            Menu_RunScrollAnimition(UP, 1, ap_linear, AL_LINEAR, 20);
+            // Menu_RunScrollAnimition(UP, 1, ap_linear, AL_LINEAR, 20);
+            Menu_StartScrollAnim(UP, ap_linear, AL_LINEAR, 20);
         }
         else // 未超出显示范围，屏幕中显示的选中索引增加
         {
             menu_manager.camera_index[menu_manager.depth].displayed_index++; // 屏幕中显示的选中索引增加
 
-            Menu_RunScrollAnimition(UP, 0, ap_linear, AL_LINEAR, 20);
+            // Menu_RunScrollAnimition(UP, 0, ap_linear, AL_LINEAR, 20);
+            uint8_t target_index = menu_manager.camera_index[menu_manager.depth].displayed_index;
+            uint8_t initial_index = target_index - 1;
+            Menu_StartUpdateSelectedAnim(ap_linear, AL_LINEAR, initial_index, target_index, 20);
         }
 
         return;
@@ -168,11 +176,13 @@ void Menu_SelectNext(void)
     // 检查上触顶时，菜单项数是否少于4个
     if (item_count < 4)
     {
-        Menu_RunEndBounceAnimition(UP, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
+        // Menu_RunEndBounceAnimition(UP, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
+        Menu_StartBounceAnim(UP, ITEM_UNFULL, ap_touch_end_func, AL_TOUCH_END, 20);
     }
     else
     {
-        Menu_RunEndBounceAnimition(UP, 1, ap_touch_end_func, AL_TOUCH_END, 20);
+        // Menu_RunEndBounceAnimition(UP, 1, ap_touch_end_func, AL_TOUCH_END, 20);
+        Menu_StartBounceAnim(UP, ITEM_FULL, ap_touch_end_func, AL_TOUCH_END, 20);
     }
 }
 
@@ -193,13 +203,15 @@ void Menu_SelectPrev(void)
         {
             menu_manager.camera_index[menu_manager.depth].start_index--; // 显示起始索引减少
 
-            Menu_RunScrollAnimition(DOWN, 1, ap_linear, AL_LINEAR, 20);
+            Menu_StartScrollAnim(DOWN, ap_linear, AL_LINEAR, 20);
         }
         else
         {
             menu_manager.camera_index[menu_manager.depth].displayed_index--; // 屏幕中显示的选中索引增加
 
-            Menu_RunScrollAnimition(DOWN, 0, ap_linear, AL_LINEAR, 20);
+            uint8_t target_index = menu_manager.camera_index[menu_manager.depth].displayed_index;
+            int8_t initial_index = target_index + 1;
+            Menu_StartUpdateSelectedAnim(ap_linear, AL_LINEAR, initial_index, target_index, 20);
         }
 
         return;
@@ -215,11 +227,11 @@ void Menu_SelectPrev(void)
     // 检查下触顶时，菜单项数是否少于4个
     if (item_count < 4)
     {
-        Menu_RunEndBounceAnimition(DOWN, 0, ap_touch_end_func, AL_TOUCH_END, 20); // 不追踪另一侧
+        Menu_StartBounceAnim(DOWN, ITEM_UNFULL, ap_touch_end_func, AL_TOUCH_END, 20);
     }
     else
     {
-        Menu_RunEndBounceAnimition(DOWN, 1, ap_touch_end_func, AL_TOUCH_END, 20);
+        Menu_StartBounceAnim(DOWN, ITEM_FULL, ap_touch_end_func, AL_TOUCH_END, 20);
     }
 }
 
@@ -232,14 +244,14 @@ void Menu_ExecuteAction(void)
         {
             menu_manager.current_item->action();
         }
-        else if (menu_manager.current_item->child != NULL)
+        else
         {
             Menu_EnterChild();
         }
     }
 }
 
-/***** 菜单功能函数 *****/
+/************* 菜单功能函数 *************/
 
 // 获取菜单项的当前语言文本
 static const char *getMenuItemText(const MenuItem *item)
@@ -293,9 +305,10 @@ void Menu_Display(void)
     case TOWARD_CHILD:
     {
         uint8_t initial_index = menu_manager.camera_index[menu_manager.depth - 1].displayed_index; // 初始父菜单反相位置
-        
+
         // 移动到当前选中项（进入子菜单默认第一项）
-        Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, 0, 20);
+        // Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, 0, 20);
+        Menu_StartUpdateSelectedAnim(ap_linear, AL_LINEAR, initial_index, 0, 20);
 
         menu_manager.toward = TOWARD_NONE; // 重置方向
         break;
@@ -306,9 +319,8 @@ void Menu_Display(void)
         uint8_t initial_index = menu_manager.camera_index[menu_manager.depth + 1].displayed_index; // 初始子菜单反相位置
         uint8_t target_index = menu_manager.camera_index[menu_manager.depth].displayed_index;      // 目标父菜单反相位置
 
-        
-        Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, target_index, 20);
-        
+        // Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, target_index, 20);
+        Menu_StartUpdateSelectedAnim(ap_linear, AL_LINEAR, initial_index, target_index, 20);
 
         menu_manager.toward = TOWARD_NONE; // 重置方向
         // 重置子菜单镜头位置
@@ -318,7 +330,7 @@ void Menu_Display(void)
         break;
     }
 
-    case TOWARD_NONE:
+    case TOWARD_NONE: // 只应该在初始化时出现
     {
         uint8_t reverse_pos = menu_manager.camera_index[menu_manager.depth].displayed_index * 16;
         OLED_ReverseArea(0, reverse_pos, 128, 16);
@@ -331,246 +343,136 @@ void Menu_Display(void)
     }
 }
 
-/***** 动画函数 *****/
+/************* 动画配置函数 *************/
 
-static void Menu_RunScrollAnimition(uint8_t direction, uint8_t is_show_new, int8_t *animition_func, uint8_t step_num, uint8_t time)
+static void Menu_StartScrollAnim(uint8_t direction, int8_t *anim_func, uint8_t step_num, uint8_t time_pre_frame)
 {
-    // 检查动画函数有效性
-    int8_t total_movement = 0;
-    for (uint8_t i = 0; i < step_num; i++)
+    MenuAnimState *anim_state = &menu_manager.anim_state;
+    anim_state->is_valid = Menu_CheckAnimValid(ANIM_MENU_SLIDE, anim_func, step_num);
+
+    if (anim_state->is_valid == A_VALID)
     {
-        total_movement += animition_func[i];
+        Menu_StateSetBasic(ANIM_MENU_SLIDE, anim_func, step_num, time_pre_frame);
+
+        anim_state->direction = direction;
+        if (direction == 0)
+            anim_state->start_pos = 4 * 16; // 向上滚动，起始位置为第5行
+        else
+            anim_state->start_pos = -16; // 向下滚动，起始位置为-1行
     }
-    if (total_movement != 16)
+
+    Menu_RunOneFrameAnim();
+}
+
+static void Menu_StartBounceAnim(uint8_t direction, uint8_t are_items_full, int8_t *anim_func, uint8_t step_num, uint8_t time_pre_frame)
+{
+    MenuAnimState *anim_state = &menu_manager.anim_state;
+    anim_state->is_valid = Menu_CheckAnimValid(ANIM_BOUNCE, anim_func, step_num);
+
+    if (anim_state->is_valid == A_VALID)
     {
-        return; // 动画函数无效，直接返回
-    }
+        Menu_StateSetBasic(ANIM_BOUNCE, anim_func, step_num, time_pre_frame);
 
-    int8_t step;      // 每一步滚动的行数
-    int8_t start_pos; // 新显示内容起始位置
+        anim_state->direction = direction;
+        anim_state->are_items_full = are_items_full;
 
-    if (direction == 0)
-        start_pos = 4 * 16; // 向上滚动，起始位置为第5行
-    else
-        start_pos = -16; // 向下滚动，起始位置为-1行
+        MenuItem *item = menu_manager.current_menu->child;
+        uint8_t item_index = 0;
 
-    if (is_show_new) // 显示新内容
-    {
-
-        for (uint8_t i = 0; i < step_num; i++)
+        if (direction == 0)
         {
-            step = animition_func[i]; // 获取当前步进行数
-            if (direction == 0)
-            {
+            anim_state->start_pos = 0;
 
-                start_pos -= step;
-                OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 取消选中反相效果
-                OLED_Scroll(-step);                                                        // 已有内容向上滚动step行
-                OLED_ShowString(0, start_pos, menu_manager.current_item->text, OLED_8X16); // 显示新内容
-                OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 重新反相选中效果
-                OLED_Update();
+            if (are_items_full)
+            {
+                // 定位到滚出内容
+                while (item->next != NULL && (item_index < menu_manager.camera_index[menu_manager.depth].start_index))
+                {
+                    item = item->next;
+                    item_index++;
+                }
+                anim_state->item = item;
             }
             else
             {
-                start_pos += step;
-                OLED_ReverseArea(0, 0, 128, 16);
-                OLED_Scroll(step);
-                OLED_ShowString(0, start_pos, menu_manager.current_item->text, OLED_8X16);
-                OLED_ReverseArea(0, 0, 128, 16);
-                OLED_Update();
-            }
+                // 定位到当前选中项位置
+                while (item->next != NULL && (item_index < menu_manager.camera_index[menu_manager.depth].selected_index))
+                {
+                    item = item->next;
+                    item_index++;
+                }
 
-            HAL_Delay(time);
+                item = menu_manager.current_menu->child; // 重置item指针为第一个菜单项
+                anim_state->item = item;
+                anim_state->initial_index = item_index;
+            }
         }
-    }
-    else // 不显示新内容，仅移动选中反相框
-    {
-        uint8_t target_index = menu_manager.camera_index[menu_manager.depth].displayed_index;
-        uint8_t initial_index = (direction == 0) ? (target_index - 1) : (target_index + 1);
-        Menu_RunUpdateReverseAnimition(ap_linear, AL_LINEAR, initial_index, target_index, 20);
+
+        else
+        {
+            if (are_items_full)
+            {
+                anim_state->start_pos = 3 * 16; // 上触底，向下滚动，起始位置为第（4）行
+                while (item->next != NULL && (item_index < menu_manager.camera_index[menu_manager.depth].start_index + 3))
+                {
+                    item = item->next;
+                    item_index++;
+                }
+                anim_state->item = item;
+            }
+        }
+
+        Menu_RunOneFrameAnim();
     }
 }
 
-static void Menu_RunEndBounceAnimition(uint8_t direction, uint8_t is_tracking_the_other_side, int8_t *animition_func, uint8_t step_num, uint8_t time)
+static void Menu_StartErrorAnim(int8_t *anim_func, uint8_t step_num, uint8_t time_pre_frame)
 {
-    // 检查动画函数有效性
-    int8_t total_movement = 0;
-    for (uint8_t i = 0; i < step_num; i++)
+    MenuAnimState *anim_state = &menu_manager.anim_state;
+    anim_state->is_valid = Menu_CheckAnimValid(ANIM_ERROR, anim_func, step_num);
+
+    if (anim_state->is_valid == A_VALID)
     {
-        total_movement += animition_func[i];
-    }
-    if (total_movement != 0)
-    {
-        return; // 动画函数无效，直接返回
-    }
+        Menu_StateSetBasic(ANIM_ERROR, anim_func, step_num, time_pre_frame);
 
-    int8_t step;      // 每一步滚动的行数
-    int8_t start_pos; // 滚动过程中可能滚出的内容起始位置
+        anim_state->start_pos = menu_manager.camera_index[menu_manager.depth].displayed_index * 16;
 
-    MenuItem *item = menu_manager.current_menu->child;
-    uint8_t item_index = 0;
-
-    if (direction == 0) // 下触底，向上滚动
-    {
-        start_pos = 0; // 滚出内容起始位置为第1行
-
-        if (is_tracking_the_other_side == 0) // 下触底时，不跟踪另一侧内容
-        {
-            // 定位到当前选中项位置
-            while (item->next != NULL && (item_index < menu_manager.camera_index[menu_manager.depth].selected_index))
-            {
-                item = item->next;
-                item_index++;
-            }
-
-            item = menu_manager.current_menu->child; // 重置item指针为第一个菜单项
-
-            for (uint8_t i = 0; i < step_num; i++)
-            {
-                step = animition_func[i]; // 获取当前步进行数
-
-                OLED_ReverseArea(0, item_index * 16, 128, 16);        // 取消之前的反相效果
-                OLED_Scroll(-step);                                   // 已有内容向上滚动step行
-                start_pos -= step;                                    // 更新新内容起始位置
-                OLED_ShowString(0, start_pos, item->text, OLED_8X16); // 显示滚出的内容
-                OLED_ReverseArea(0, item_index * 16, 128, 16);        // 重新反相选中效果
-                OLED_Update();
-
-                HAL_Delay(time);
-            }
-        }
-        else
-        {
-            // 定位到滚出内容
-            while (item->next != NULL && (item_index < menu_manager.camera_index[menu_manager.depth].start_index))
-            {
-                item = item->next;
-                item_index++;
-            }
-
-            for (uint8_t i = 0; i < step_num; i++)
-            {
-                step = animition_func[i]; // 获取当前步进行数
-
-                OLED_ReverseArea(0, 3 * 16, 128, 16);                 // 取消之前的反相效果
-                OLED_Scroll(-step);                                   // 已有内容向上滚动step行
-                start_pos -= step;                                    // 更新新内容起始位置
-                OLED_ShowString(0, start_pos, item->text, OLED_8X16); // 显示滚出的内容
-                OLED_ReverseArea(0, 3 * 16, 128, 16);                 // 重新反相选中效果
-                OLED_Update();
-
-                HAL_Delay(time);
-            }
-        }
+        Menu_RunOneFrameAnim(); // 直接运行第一帧，避免首帧延迟
     }
     else
     {
-        if (is_tracking_the_other_side == 0) // 上触顶时，不跟踪另一侧内容
-        {
-            for (uint8_t i = 0; i < step_num; i++)
-            {
-                step = animition_func[i]; // 获取当前步进行数
-
-                OLED_ReverseArea(0, 0, 128, 16); // 取消之前的反相效果
-                OLED_Scroll(step);               // 已有内容向下滚动step行
-                OLED_ReverseArea(0, 0, 128, 16); // 重新反相选中效果
-                OLED_Update();
-
-                HAL_Delay(time);
-            }
-        }
-        else // 上触顶时，跟踪另一侧内容
-        {
-            start_pos = 3 * 16; // 上触底，向下滚动，起始位置为第（4）行
-            while (item->next != NULL && (item_index < menu_manager.camera_index[menu_manager.depth].start_index + 3))
-            {
-                item = item->next;
-                item_index++;
-            }
-
-            for (uint8_t i = 0; i < step_num; i++)
-            {
-                step = animition_func[i]; // 获取当前步进行数
-
-                OLED_ReverseArea(0, 0, 128, 16);                      // 取消之前的反相效果
-                OLED_Scroll(step);                                    // 已有内容向下滚动step行
-                start_pos += step;                                    // 更新新内容起始位置
-                OLED_ShowString(0, start_pos, item->text, OLED_8X16); // 显示滚出的内容
-                OLED_ReverseArea(0, 0, 128, 16);                      // 重新反相选中效果
-                OLED_Update();
-
-                HAL_Delay(time);
-            }
-        }
+        return;
     }
 }
 
-static void Menu_RunErrorAnimition(int8_t *animition_func, uint8_t step_num, uint8_t time)
+static void Menu_StartUpdateSelectedAnim(int8_t *anim_func, uint8_t step_num, uint8_t initial_index, uint8_t target_index, uint8_t time_pre_frame)
 {
-    // 检查动画函数有效性
-    int8_t total_movement = 0;
-    for (uint8_t i = 0; i < step_num; i++)
+    MenuAnimState *anim_state = &menu_manager.anim_state;
+    anim_state->is_valid = Menu_CheckAnimValid(ANIM_ITEM_SELECTED, anim_func, step_num);
+    if (anim_state->is_running)
+        return; // 正在运行则不开始新动画
+
+    if (anim_state->is_valid == A_VALID)
     {
-        total_movement += animition_func[i];
-    }
-    if (total_movement != 0)
-    {
-        return; // 动画函数无效，直接返回
-    }
+        Menu_StateSetBasic(ANIM_ITEM_SELECTED, anim_func, step_num, time_pre_frame);
 
-    int8_t step;         // 每一步滚动的行数
-    uint8_t reverse_pos; // 反相位置
+        anim_state->initial_index = initial_index;
+        anim_state->target_index = target_index;
+        anim_state->start_pos = initial_index * 16;
+        anim_state->bias = (target_index - initial_index) * 16;
 
-    reverse_pos = menu_manager.camera_index[menu_manager.depth].displayed_index * 16;
+        // 执行初始帧, 避免首帧延迟
+        if (menu_manager.toward != TOWARD_NONE)
+        {
+            OLED_ReverseArea(0, initial_index * 16, 128, 16); // 保持之前的反相效果
+            OLED_Update();
 
-    for (uint8_t i = 0; i < step_num; i++)
-    {
-        step = animition_func[i]; // 获取当前步进行数
-
-        OLED_ReverseArea(0, reverse_pos, 128, 16); // 取消之前的反相效果
-        reverse_pos += step;
-        OLED_ReverseArea(0, reverse_pos, 128, 16);
-        OLED_Update();
-
-        HAL_Delay(time);
-    }
-}
-
-static void Menu_RunUpdateReverseAnimition(int8_t *animition_func, uint8_t step_num, uint8_t initial_index, uint8_t target_index, uint8_t time)
-{
-    // 检查动画函数有效性
-    int8_t total_movement = 0;
-    for (uint8_t i = 0; i < step_num; i++)
-    {
-        total_movement += animition_func[i];
-    }
-    if (total_movement != 16)
-    {
-        return; // 动画函数无效，直接返回
-    }
-
-    int8_t step;         // 每一步滚动的行数
-    uint8_t reverse_pos; // 反相位置
-
-    reverse_pos = initial_index * 16; // 记录当前的反相位置
-
-    int8_t bias = (target_index - initial_index) * 16; // 初始选中项到目标选中项的偏移
-
-    if (menu_manager.toward != TOWARD_NONE)
-    {
-        OLED_ReverseArea(0, initial_index * 16, 128, 16); // 保持之前的反相效果
-        OLED_Update();
-    }
-
-    for (uint8_t i = 0; i < step_num; i++)
-    {
-        step = animition_func[i] * bias / 16;      // 获取当前步进行数
-        OLED_ReverseArea(0, reverse_pos, 128, 16); // 取消之前的反向效果
-        reverse_pos += step;                       // 更新反相位置
-        OLED_ReverseArea(0, reverse_pos, 128, 16); // 重新反相选中效果
-        OLED_Update();
-
-        HAL_Delay(time);
+            anim_state->timer = 0; // 计时器置零
+        }
+        else
+        {
+            Menu_RunOneFrameAnim();
+        }
     }
 }
 
@@ -601,6 +503,232 @@ static void Menu_DisplayItem(MenuMode mode)
     }
 
     case MODE_HORIZONTAL:
+        break;
+    default:
+        break;
+    }
+}
+
+/************* 动画帧函数 *************/
+
+static uint8_t Menu_CheckAnimValid(AnimType type, int8_t *anim_func, uint8_t step_num)
+{
+    // 检查动画函数有效性
+    int8_t total_movement = 0;
+    int8_t valid_total_movement;
+    for (uint8_t i = 0; i < step_num; i++)
+    {
+        total_movement += anim_func[i];
+    }
+
+    switch (type)
+    {
+        /*** 均为0（最终位置与初始位置相同） ***/
+    case ANIM_ERROR:
+    case ANIM_BOUNCE:
+    {
+        valid_total_movement = 0;
+        break;
+    }
+    /*** 均为16（移动一行文本宽度） ***/
+    case ANIM_ITEM_SELECTED:
+    case ANIM_MENU_SLIDE:
+    {
+        valid_total_movement = 16;
+        break;
+    }
+    case ANIM_NONE:
+        return A_INVALID;
+
+    default:
+        return A_INVALID;
+    }
+
+    if (total_movement != valid_total_movement)
+    {
+        return A_INVALID;
+    }
+    return A_VALID;
+}
+
+static void Menu_StateSetBasic(AnimType type, int8_t *anim_func, uint8_t total_frame, uint8_t time_per_frame)
+{
+    MenuAnimState *anim_state = &menu_manager.anim_state;
+
+    anim_state->type = type;
+    anim_state->current_frame = 0;
+    anim_state->total_frames = total_frame;
+    anim_state->time_per_frame = time_per_frame;
+    anim_state->is_running = 1;
+    anim_state->anim_func = anim_func;
+    anim_state->timer = 0;
+}
+
+void Menu_RunOneFrameAnim(void)
+{
+    MenuAnimState *anim_state = &menu_manager.anim_state;
+    // 是否已经有动画在播放
+    if (!anim_state->is_running)
+        return;
+
+    // 帧时长未到则不执行下一帧
+    if (anim_state->timer < anim_state->time_per_frame)
+        return;
+
+    // 根据动画类型播放对应帧
+    switch (anim_state->type)
+    {
+    case ANIM_MENU_SLIDE:
+    {
+        // 1. 判断当前帧是否超出总帧数（动画结束）
+        if (anim_state->current_frame >= anim_state->total_frames)
+        {
+            // 动画结束：重置状态
+            anim_state->is_running = 0;
+            anim_state->type = ANIM_NONE;
+            anim_state->current_frame = 0;
+            return;
+        }
+
+        int8_t step = anim_state->anim_func[anim_state->current_frame]; // 当前步长
+
+        if (anim_state->direction == 0)
+        {
+
+            anim_state->start_pos -= step;
+            OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 取消选中反相效果
+            OLED_Scroll(-step);                                                        // 已有内容向上滚动step行
+            OLED_ShowString(0, anim_state->start_pos, menu_manager.current_item->text, OLED_8X16); // 显示新内容
+            OLED_ReverseArea(0, 3 * 16, 128, 16);                                      // 重新反相选中效果
+            OLED_Update();
+        }
+        else
+        {
+            anim_state->start_pos += step;
+            OLED_ReverseArea(0, 0, 128, 16);
+            OLED_Scroll(step);
+            OLED_ShowString(0, anim_state->start_pos, menu_manager.current_item->text, OLED_8X16);
+            OLED_ReverseArea(0, 0, 128, 16);
+            OLED_Update();
+        }
+
+        anim_state->current_frame++;
+        anim_state->timer = 0; // 计时器置零
+        break;
+    }
+
+    case ANIM_ITEM_SELECTED:
+    {
+        // 1. 判断当前帧是否超出总帧数（动画结束）
+        if (anim_state->current_frame >= anim_state->total_frames)
+        {
+            // 动画结束：重置状态
+            anim_state->is_running = 0;
+            anim_state->type = ANIM_NONE;
+            anim_state->current_frame = 0;
+            return;
+        }
+
+        int8_t step = anim_state->anim_func[anim_state->current_frame] * anim_state->bias / 16; // 获取当前步进行数
+        OLED_ReverseArea(0, anim_state->start_pos, 128, 16);                                    // 取消之前的反向效果
+        anim_state->start_pos += step;                                                          // 更新反相位置
+        OLED_ReverseArea(0, anim_state->start_pos, 128, 16);                                    // 重新反相选中效果
+        OLED_Update();
+
+        anim_state->current_frame++;
+        anim_state->timer = 0; // 计时器置零
+        break;
+    }
+    case ANIM_BOUNCE:
+    {
+        // 1. 判断当前帧是否超出总帧数（动画结束）
+        if (anim_state->current_frame >= anim_state->total_frames)
+        {
+            // 动画结束：重置状态
+            anim_state->is_running = 0;
+            anim_state->type = ANIM_NONE;
+            anim_state->current_frame = 0;
+            return;
+        }
+
+        int8_t step = anim_state->anim_func[anim_state->current_frame]; // 获取当前步进行数
+        int8_t selected_pos = anim_state->initial_index * 16;
+        MenuItem *item = anim_state->item;
+
+        if (anim_state->direction == 0) // 下触底，向上滚动
+        {
+
+            if (anim_state->are_items_full == 0) // 下触底时，不跟踪另一侧内容
+            {
+
+                OLED_ReverseArea(0, selected_pos, 128, 16);                       // 取消之前的反相效果
+                OLED_Scroll(-step);                                               // 已有内容向上滚动step行
+                anim_state->start_pos -= step;                                    // 更新新内容起始位置
+                OLED_ShowString(0, anim_state->start_pos, item->text, OLED_8X16); // 显示滚出的内容
+                OLED_ReverseArea(0, selected_pos, 128, 16);                       // 重新反相选中效果
+                OLED_Update();
+            }
+            else
+            {
+                OLED_ReverseArea(0, 3 * 16, 128, 16);                             // 取消之前的反相效果
+                OLED_Scroll(-step);                                               // 已有内容向上滚动step行
+                anim_state->start_pos -= step;                                    // 更新新内容起始位置
+                OLED_ShowString(0, anim_state->start_pos, item->text, OLED_8X16); // 显示滚出的内容
+                OLED_ReverseArea(0, 3 * 16, 128, 16);                             // 重新反相选中效果
+                OLED_Update();
+            }
+        }
+        else
+        {
+            if (anim_state->are_items_full == 0) // 上触顶时，不跟踪另一侧内容
+            {
+                OLED_ReverseArea(0, 0, 128, 16); // 取消之前的反相效果
+                OLED_Scroll(step);               // 已有内容向下滚动step行
+                OLED_ReverseArea(0, 0, 128, 16); // 重新反相选中效果
+                OLED_Update();
+            }
+            else // 上触顶时，跟踪另一侧内容
+            {
+                OLED_ReverseArea(0, 0, 128, 16);                                  // 取消之前的反相效果
+                OLED_Scroll(step);                                                // 已有内容向下滚动step行
+                anim_state->start_pos += step;                                    // 更新新内容起始位置
+                OLED_ShowString(0, anim_state->start_pos, item->text, OLED_8X16); // 显示滚出的内容
+                OLED_ReverseArea(0, 0, 128, 16);                                  // 重新反相选中效果
+                OLED_Update();
+            }
+        }
+
+        anim_state->current_frame++;
+        anim_state->timer = 0; // 计时器置零
+        break;
+    }
+    case ANIM_ERROR:
+    {
+        // 1. 判断当前帧是否超出总帧数（动画结束）
+        if (anim_state->current_frame >= anim_state->total_frames)
+        {
+            // 动画结束：重置状态
+            anim_state->is_running = 0;
+            anim_state->type = ANIM_NONE;
+            anim_state->current_frame = 0;
+            return;
+        }
+
+        int8_t step = anim_state->anim_func[anim_state->current_frame]; // 当前步长
+
+        OLED_ReverseArea(0, anim_state->start_pos, 128, 16); // 取消之前的反相效果
+        anim_state->start_pos += step;
+        OLED_ReverseArea(0, anim_state->start_pos, 128, 16);
+        OLED_Update();
+
+        // HAL_Delay(20);
+
+        anim_state->current_frame++;
+        anim_state->timer = 0; // 计时器置零
+        break;
+    }
+
+    case ANIM_NONE:
         break;
     default:
         break;

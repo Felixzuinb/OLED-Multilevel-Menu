@@ -13,7 +13,6 @@ MenuItem mainMenu,
     menu_timers,
     menu_about;
 
-
 static void action_set_Chinese(void);
 static void action_set_English(void);
 
@@ -69,19 +68,19 @@ void Init_Menu(void)
 
 static void action_set_Chinese(void)
 {
-    currentLanguage = LANG_CHINESE;
+  currentLanguage = LANG_CHINESE;
 
-    menu_manager.refreshText(menu_manager.root);
+  menu_manager.refreshText(menu_manager.root);
 
-    Menu_Display();
+  Menu_Display();
 }
 
 static void action_set_English(void)
 {
-    currentLanguage = LANG_ENGLISH;
+  currentLanguage = LANG_ENGLISH;
 
-    menu_manager.refreshText(menu_manager.root);
+  menu_manager.refreshText(menu_manager.root);
 
-    Menu_Display();
+  Menu_Display();
 }
 
